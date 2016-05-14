@@ -529,18 +529,423 @@ class Multi3Test(MultiClassMethodTest):
         cls.printmethod()
         print '%d multi %d' %(add_class.add(a), b)
         return add_class.add(a) * b
+    
 
+########################################################################
+class ToDictMixin(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def to_dict(self):
+        return self._traverse_dict(self.__dict__)
+    
+    #----------------------------------------------------------------------
+    def _traverse_dict(self, instance_dict):
+        """"""
+        output = {}
+        for key, value in instance_dict.items():
+            output[key] = self._traverse(key, value)
+        return output
+    
+    #----------------------------------------------------------------------
+    def _traverse(self, key, value):
+        """"""
+        if isinstance(value, ToDictMixin):
+            return value.to_dict()
+        elif isinstance(value, dict):
+            return self._traverse_dict(value)
+        elif isinstance(value, list):
+            return [self._traverse(key, i) for i in value]
+        elif hasattr(value, '__dict__'):
+            return self._traverse_dict(value.__dict__)
+        else:
+            return value
+        
+        
+########################################################################
+class BinaryTree(ToDictMixin):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, value, left=None, right=None):
+        """Constructor"""
+        self.value = value
+        self.left = left
+        self.right = right
+
+
+########################################################################
+class BinaryTreeWithParent(BinaryTree):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, value, left=None, right=None, parent=None):
+        """Constructor"""
+        super().__init__(value, left=left, right=right)
+        self.parent = parent
+    
+    
+########################################################################
+class A(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self.__private = 'haha'
+        
+
+########################################################################
+class Resistor(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, ohms):
+        """Constructor"""
+        self.ohms = ohms
+        self.voltage = 0
+        self.current = 0
+
+
+########################################################################
+class VoltageResistance(Resistor):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, ohms):
+        """Constructor"""
+        super(VoltageResistance, self).__init__(ohms)
+        self._voltage = 0
+        
+    #----------------------------------------------------------------------
+    @property
+    def voltage(self):
+        """"""
+        return self._voltage
+    
+    #----------------------------------------------------------------------
+    @voltage.setter
+    def voltage(self, voltage):
+        """"""
+        self._voltage = voltage
+        self.current = self._voltage / self.ohms
+    
+
+########################################################################
+class BoundedResistance(Resistor):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, ohms):
+        """Constructor"""
+        super(BoundedResistance, self).__init__(ohms)
+    
+    #----------------------------------------------------------------------
+    @property
+    def ohms(self):
+        """"""
+        return self._ohms
+        
+    #----------------------------------------------------------------------
+    @ohms.setter
+    def ohms(self, ohms):
+        """"""
+        if ohms <= 0:
+            raise ValueError('%f ohms must be > 0' %ohms)
+        self._ohms = ohms
+    
+
+########################################################################
+class FixedResistance(Resistor):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, ohms):
+        """Constructor"""
+        super(FixedResistance, self).__init__(ohms)
+    
+    #----------------------------------------------------------------------
+    @property
+    def ohms(self):
+        """"""
+        return self._ohms
+    
+    #----------------------------------------------------------------------
+    @ohms.setter
+    def ohms(self, ohms):
+        """"""
+        if hasattr(self, '_ohms'):
+            raise AttributeError("can't set attribute")
+        self._ohms = ohms
+    
+from datetime import timedelta
+from time import ctime
+
+########################################################################
+class Bucket(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self, period):
+        """Constructor"""
+        self.period_delta = timedelta(seconds=period)
+        self.reset_time = datetime.datetime.now()
+        self.max_quota = 0
+        self.quota_consumed = 0
+    
+    #----------------------------------------------------------------------
+    def __repr__(self):
+        """"""
+        return 'Bucked(max_quota=%d, quota_condumed=%d)' %(self.max_quota,
+                                                           self.quota_consumed)
+    
+    #----------------------------------------------------------------------
+    @property
+    def quota(self):
+        """"""
+        return self.max_quota - self.quota_consumed
+    
+    #----------------------------------------------------------------------
+    @quota.setter
+    def quota(self, amount):
+        """"""
+        delta = self.max_quota - amount
+        if amount == 0:
+            self.quota_consumed = 0
+            self.max_quota = 0
+        elif delta < 0:
+            assert self.quota_consumed == 0
+            self.max_quota = amount
+        else:
+            assert self.max_quota >= self.quota_consumed
+            self.quota_consumed += delta
+
+
+#----------------------------------------------------------------------
+def fill(bucket, amount):
+    """"""
+    now = datetime.datetime.now()
+    if now - bucket.reset_time > bucket.period_delta:
+        bucket.quota = 0
+        bucket.reset_time = now
+    bucket.quota += amount
+
+#----------------------------------------------------------------------
+def deduct(bucket, amount):
+    """"""
+    now = datetime.datetime.now()
+    if now - bucket.reset_time > bucket.period_delta:
+        return False
+    if bucket.quota - amount< 0:
+        return False
+    bucket.quota -= amount
+    return True
+    
+        
+        
+########################################################################
+class Homework0(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self._grade = 0
+    
+    #----------------------------------------------------------------------
+    @property
+    def grade(self):
+        """"""
+        return self._grade
+    
+    #----------------------------------------------------------------------
+    @grade.setter
+    def grade(self, value):
+        """"""
+        if not 0 <= value <= 100:
+            raise ValueError('Grade must be between 0 and 100')
+        self._grade = value
+    
+    
+########################################################################
+class Exam0(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self._writing_grade = 0
+        self._math_grade = 0
+        
+    #----------------------------------------------------------------------
+    @staticmethod
+    def _check_grade(value):
+        """"""
+        if not 0 <= value <= 100:
+            raise ValueError('Grade must be between 0 and 100')
+    
+    #----------------------------------------------------------------------
+    @property
+    def writing_grade(self):
+        """"""
+        return self._writing_grade
+    
+    #----------------------------------------------------------------------
+    @writing_grade.setter
+    def writing_grade(self, value):
+        """"""
+        self._check_grade(value)
+        self._writing_grade = value 
+        
+    #----------------------------------------------------------------------
+    @property
+    def math_grade(self):
+        """"""
+        return self._math_grade
+    
+    #----------------------------------------------------------------------
+    @math_grade.setter
+    def math_grade(self, value):
+        """"""
+        self._check_grade(value)
+        self._math_grade = value
+
+
+from weakref import WeakKeyDictionary
+
+
+########################################################################
+class Grade(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self._values = WeakKeyDictionary()
+    
+    #----------------------------------------------------------------------
+    def __get__(self, instance, instance_type):
+        """"""
+        if instance is None:
+            return self
+        return self._values.get(instance, 0)
+    
+    #----------------------------------------------------------------------
+    def __set__(self, instance, value):
+        """"""
+        if not 0 <= value <= 100:
+            raise ValueError('Grade must be between 0 and 100')
+        self._values[instance] = value
+        
+
+########################################################################
+class Exam(object):
+    """"""
+    math_grade = Grade()
+    writing_grade = Grade()
+    science_grade = Grade()
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        pass
+    
+
+########################################################################
+class LazyDB(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self.exists = 5
+        
+    #----------------------------------------------------------------------
+    def __getattr__(self, name):
+        """"""
+        value = 'value for %s' % name
+        setattr(self, name, value)
+        return value
+
+########################################################################
+class LoggingLazyDB(LazyDB):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __getattr__(self, name):
+        """"""
+        print 'Called __getattr__(%s)' %name
+        return super(LoggingLazyDB, self).__getattr__(name)
+    
+
+########################################################################
+class ValidatingDB(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self.exists = 5
+        
+    #----------------------------------------------------------------------
+    def __getattribute__(self, name):
+        """"""
+        print 'Called __getattribute__(%s)' %name
+        try:
+            return super(ValidatingDB, self).__getattribute__(name)
+        except AttributeError:
+            value = 'Value for %s' %name
+            setattr(self, name, value)
+            return value
+
+
+########################################################################
+class SavingDB(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __setattr__(self, name, value):
+        """"""
+        super(SavingDB, self).__setattr__(name, value)
+    
+    
+########################################################################
+class LoggingSavingDB(SavingDB):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __setattr__(self, name, value):
+        """"""
+        print 'Called __setattr__(%s, %r)' %(name, value)
+        super(LoggingSavingDB, self).__setattr__(name, value)
+        
+
+########################################################################
+class BrokenDictionaryDB(object):
+    """"""
+
+    #----------------------------------------------------------------------
+    def __init__(self):
+        """Constructor"""
+        self._data = {}
+    
+    #----------------------------------------------------------------------
+    def __getattribute__(self, name):
+        """"""
+        
+    
+
+        
+    
 #----------------------------------------------------------------------
 def main():
     """"""
-    print '*' * 30
-    Multi2Test.multi(Add1Test, 3)
-    print '*' * 30
-    Multi2Test.multi(Add2Test, 4)
-    print '*' * 30
-    Multi3Test.multi(Add1Test, 3)
-    print '*' * 30
-    Multi3Test.multi(Add2Test, 4)
+    data = LoggingSavingDB()
+    print('Before: ', data.__dict__)
+    data.foo = 5
+    print('After: ', data.__dict__)
+    data.foo = 7
+    print('Finally:', data.__dict__)   
     
 if __name__ == '__main__':
     main()
